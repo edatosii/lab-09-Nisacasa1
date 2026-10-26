@@ -1,0 +1,4 @@
+# Finales de línea fijos: los scripts de shell DEBEN usar LF aunque se clonen en Windows
+# (con CRLF, bash falla con "\r: command not found").
+*.sh   text eol=lf
+mvnw   text eol=lf

@@ -1,0 +1,72 @@
+name: Pruebas
+
+# Las pruebas NO corren en cada push. Se ejecutan solo cuando se agrega
+# la etiqueta "Running Tests" al Pull Request.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write   # las etiquetas de un PR se administran con la API de issues
+
+concurrency:
+  group: pruebas-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  ETIQUETA_EJECUTANDO: "Running Tests"
+  ETIQUETA_OK: "Test Passing"
+  ETIQUETA_FALLO: "Broken Test suite"
+
+jobs:
+  pruebas:
+    if: github.event.label.name == 'Running Tests'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crear etiquetas si no existen y limpiar resultados anteriores
+        run: |
+          gh label create "$ETIQUETA_OK"    --color 2da44e --description "Todas las pruebas pasan"  --force
+          gh label create "$ETIQUETA_FALLO" --color d1242f --description "Hay pruebas que fallan o no compila" --force
+          gh label create "$ETIQUETA_EJECUTANDO" --color fbca04 --description "Agregue esta etiqueta para ejecutar las pruebas" --force
+          gh pr edit "$PR" --remove-label "$ETIQUETA_OK" --remove-label "$ETIQUETA_FALLO" || true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Ejecutar pruebas
+        id: pruebas
+        continue-on-error: true
+        run: mvn -B test
+
+      - name: Resumen de pruebas aprobadas
+        id: resumen
+        if: always()
+        run: python3 .github/scripts/resumen_pruebas.py
+
+      - name: Etiquetar resultado
+        if: always()
+        run: |
+          if [ "${{ steps.pruebas.outcome }}" = "success" ]; then
+            gh pr edit "$PR" --add-label "$ETIQUETA_OK"
+          else
+            gh pr edit "$PR" --add-label "$ETIQUETA_FALLO"
+          fi
+          # Se quita "Running Tests" para poder volver a lanzarlas agregándola de nuevo
+          gh pr edit "$PR" --remove-label "$ETIQUETA_EJECUTANDO" || true
+
+      - name: Marcar el check en rojo si las pruebas fallaron
+        if: steps.pruebas.outcome != 'success'
+        run: |
+          echo "Las pruebas fallaron o el proyecto no compila. Revise el paso 'Ejecutar pruebas'."
+          exit 1

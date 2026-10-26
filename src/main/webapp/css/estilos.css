@@ -1,0 +1,17 @@
+body { font-family: system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #222; }
+header { background: #1f3a5f; color: #fff; padding: 1rem 2rem; }
+header h1 { margin: 0; font-size: 1.4rem; }
+main { max-width: 800px; margin: 1.5rem auto; padding: 0 1rem; }
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: .6rem .8rem; border-bottom: 1px solid #e3e6ea; text-align: left; }
+th { background: #e9edf2; }
+.acciones { display: flex; gap: .8rem; align-items: center; }
+.acciones form { margin: 0; }
+.vacio { text-align: center; color: #777; font-style: italic; }
+a { color: #1f5fbf; }
+.boton, button { background: #1f5fbf; color: #fff; border: 0; border-radius: 6px; padding: .5rem 1rem;
+                 font: inherit; cursor: pointer; text-decoration: none; display: inline-block; }
+button.peligro { background: #c0392b; padding: .25rem .7rem; }
+form p { display: flex; flex-direction: column; gap: .25rem; max-width: 360px; }
+input { font: inherit; padding: .5rem; border: 1px solid #c8ced6; border-radius: 6px; }
+.error { background: #fdecea; color: #a12a1f; padding: .6rem .8rem; border-radius: 6px; }

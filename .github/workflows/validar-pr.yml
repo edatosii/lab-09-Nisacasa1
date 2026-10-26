@@ -1,0 +1,56 @@
+name: Validar PR
+
+# Se ejecuta al abrir o editar el título/descripción del PR (no en cada push,
+# porque un push no cambia el título ni la descripción).
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+
+permissions: {}
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    # Título y descripción los escribe el estudiante: se pasan por variables de
+    # entorno y NUNCA se insertan con ${{ }} dentro del script (inyección de comandos).
+    env:
+      TITULO: ${{ github.event.pull_request.title }}
+      DESCRIPCION: ${{ github.event.pull_request.body }}
+    steps:
+      - name: Validar título y descripción
+        run: |
+          errores=0
+          resumen=""
+
+          # 1) Título: debe empezar con LAB-N (N = número). Ej.: "LAB-1: calculadora"
+          if [[ "$TITULO" =~ ^LAB-[0-9]+([[:space:]:-].*)?$ ]]; then
+            echo "OK  título: $TITULO"
+          else
+            echo "::error title=Título inválido::El título debe empezar con LAB-N (ej.: 'LAB-1: calculadora'). Título actual: '$TITULO'"
+            resumen+="- ❌ **Título inválido.** Debe empezar con \`LAB-N\`, por ejemplo \`LAB-1: calculadora\`."$'\n'
+            errores=1
+          fi
+
+          # 2) Descripción: debe tener una línea "Nombre: <algo>" (no vacío)
+          if printf '%s' "$DESCRIPCION" | tr -d '\r' | grep -Eiq '^[[:space:]]*Nombre:[[:space:]]*[^[:space:]]'; then
+            echo "OK  descripción incluye Nombre"
+          else
+            echo "::error title=Falta el nombre::La descripción debe incluir una línea 'Nombre: Su Nombre Completo'."
+            resumen+="- ❌ **Falta el nombre.** La descripción debe incluir una línea \`Nombre: Su Nombre Completo\`."$'\n'
+            errores=1
+          fi
+
+          {
+            if [ "$errores" -eq 0 ]; then
+              echo "## ✅ El PR cumple el formato"
+            else
+              echo "## ❌ El PR no cumple el formato"
+              echo
+              printf '%s' "$resumen"
+              echo
+              echo "Corrija el título o la descripción (botón **Edit** del PR): la validación se vuelve a ejecutar sola."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$errores"
